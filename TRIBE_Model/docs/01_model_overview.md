@@ -68,8 +68,8 @@ graph TD
 Only yellow cells that **feed calculations** (are referenced by at least one formula) are listed below.
 
 ### 0. Rack Profile
-- `0. Rack Profile!B6` — Chipset type (default `'NVIDIA H100'`)
-- `0. Rack Profile!B17` — Cooling method (default `'Direct-to-Chip (DTC)'`)
+- `0. Rack Profile!B6` — Chipset type (default `NVIDIA H100`)
+- `0. Rack Profile!B17` — Cooling method (default `Direct-to-Chip (DTC)`)
 - `0. Rack Profile!B36` — Module IT capacity target (kW) (default `250`)
 - `0. Rack Profile!B58` — Electricity price (£/kWh) (default `0.18`)
 - `0. Rack Profile!B67` — Annual operating hours (default `8000`)
@@ -92,6 +92,7 @@ Only yellow cells that **feed calculations** (are referenced by at least one for
 - `3. Module Opex!B17` — Heat pump maintenance (% of HP capex) (default `0.02`)
 - `3. Module Opex!B19` — Insurance (% of total capex) (default `0.01`)
 - `3. Module Opex!B24` — Site lease/licence (£/yr) (default `15000`)
+- `3. Module Opex!B25` — Remote monitoring & NOC (£/yr) (default `12000`)
 - `3. Module Opex!B26` — Connectivity & admin (£/yr) (default `8000`)
 
 ### 4. Module Flow
@@ -102,7 +103,7 @@ Only yellow cells that **feed calculations** (are referenced by at least one for
 - `4. Module Flow!B29` — Design velocity (m/s) (default `2`)
 
 ### 5. Buyer Profile
-- `5. Buyer Profile!B11` — Select process (default `'Pasteurisation - Medium'`)
+- `5. Buyer Profile!B11` — Select process (default `Pasteurisation - Medium`)
 - `5. Buyer Profile!B100` — Module footprint each (m²) (default `15`)
 
 ### 6. System Capex

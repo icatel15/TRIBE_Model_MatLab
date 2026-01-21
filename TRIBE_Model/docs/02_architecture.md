@@ -135,7 +135,6 @@ Field lists below are derived from the workbook row labels and filtered to cells
 | `rack_enclosures` | `2. Module Capex!B15` | double |  | Cost per-rack housing |
 | `rack_enclosures__fixed_per_module` | `2. Module Capex!C15` | string |  | Cost per-rack housing |
 | `subtotal_enclosure` | `2. Module Capex!B16` | double |  | Subtotal enclosure costs for module |
-| `dtc_cooling` | `2. Module Capex!B18` | string |  | Section for DTC-specific equipment |
 | `cold_plate_kits` | `2. Module Capex!B19` | double |  | Cost DTC cooling hardware per server |
 | `cdu_base` | `2. Module Capex!B20` | double | base | Cost coolant distribution unit |
 | `cdu_capacity_scaling` | `2. Module Capex!B21` | double | capacity scaling | Cost coolant distribution unit |
