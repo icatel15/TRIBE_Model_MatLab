@@ -65,10 +65,7 @@ graph TD
 
 ## Key Inputs (Yellow Cells)
 
-Yellow cells are user-adjustable. Reference-data sheets contain many adjustable rates; calculation sheets contain a small set of configuration inputs.
-
-### Overview
-- `Overview!B44` — Yellow cells (default `'Example'`)
+Only yellow cells that **feed calculations** (are referenced by at least one formula) are listed below.
 
 ### 0. Rack Profile
 - `0. Rack Profile!B6` — Chipset type (default `'NVIDIA H100'`)
@@ -76,14 +73,6 @@ Yellow cells are user-adjustable. Reference-data sheets contain many adjustable 
 - `0. Rack Profile!B36` — Module IT capacity target (kW) (default `250`)
 - `0. Rack Profile!B58` — Electricity price (£/kWh) (default `0.18`)
 - `0. Rack Profile!B67` — Annual operating hours (default `8000`)
-- `0. Rack Profile!C76` — Direct-to-Chip (DTC) (default `57.5`)
-- `0. Rack Profile!E76` — Direct-to-Chip (DTC) (default `4.4`)
-- `0. Rack Profile!C77` — Single-Phase Immersion (default `50`)
-- `0. Rack Profile!E77` — Single-Phase Immersion (default `3.8`)
-- `0. Rack Profile!C78` — Two-Phase Immersion (default `55`)
-- `0. Rack Profile!E78` — Two-Phase Immersion (default `4.2`)
-- `0. Rack Profile!C79` — Rear Door Heat Exchanger (default `45`)
-- `0. Rack Profile!E79` — Rear Door Heat Exchanger (default `3.4`)
 
 ### 1. Module Criteria
 - `1. Module Criteria!B6` — Compute rate (£/kW/month) (default `150`)
@@ -93,7 +82,6 @@ Yellow cells are user-adjustable. Reference-data sheets contain many adjustable 
 - `1. Module Criteria!B23` — Hours per year (default `8760`)
 - `1. Module Criteria!B27` — Base heat price - no HP (£/MWh) (default `25`)
 - `1. Module Criteria!B28` — Premium heat price - with HP (£/MWh) (default `40`)
-- `1. Module Criteria!B30` — Reference: Industrial gas price (£/MWh) (default `53`)
 
 ### 2. Module Capex
 - `2. Module Capex!B52` — Heat pump CAPEX rate (£/kWth) (default `600`)
@@ -104,7 +92,6 @@ Yellow cells are user-adjustable. Reference-data sheets contain many adjustable 
 - `3. Module Opex!B17` — Heat pump maintenance (% of HP capex) (default `0.02`)
 - `3. Module Opex!B19` — Insurance (% of total capex) (default `0.01`)
 - `3. Module Opex!B24` — Site lease/licence (£/yr) (default `15000`)
-- `3. Module Opex!B25` — Remote monitoring & NOC (£/yr) (default `12000`)
 - `3. Module Opex!B26` — Connectivity & admin (£/yr) (default `8000`)
 
 ### 4. Module Flow
@@ -117,7 +104,6 @@ Yellow cells are user-adjustable. Reference-data sheets contain many adjustable 
 ### 5. Buyer Profile
 - `5. Buyer Profile!B11` — Select process (default `'Pasteurisation - Medium'`)
 - `5. Buyer Profile!B100` — Module footprint each (m²) (default `15`)
-- `5. Buyer Profile!B114` — BMS/Controls package (default `1`)
 
 ### 6. System Capex
 - `6. System Capex!B25` — Shared infrastructure (%) (default `0.05`)

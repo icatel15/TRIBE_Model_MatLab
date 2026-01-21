@@ -13,8 +13,8 @@ Provide a single model entry point, configuration, and a validation suite that c
 ## Excel Parity Strategy
 
 - Prefer validating **numeric cells** (ignore explanatory text columns).
-- For cells that are display-only (e.g., ✓/✗ strings), either validate exact strings or validate their underlying numeric conditions.
-- Build a cell-map from `A1_formula_reference.md` to expected outputs for the default configuration.
+- For display-only cells (✓/✗ strings), either validate exact strings or validate their underlying numeric conditions.
+- Use `A1_formula_reference.md` as the source-of-truth list of formula cells to validate.
 
 ## Suggested Validation Harness
 

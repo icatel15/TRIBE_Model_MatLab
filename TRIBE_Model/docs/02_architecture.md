@@ -18,7 +18,8 @@ TRIBE_Model/
 ## Naming Conventions
 
 - Use MATLAB **string scalars** for categorical values (e.g., chipset, cooling method).
-- Struct fields use `snake_case`, derived from the Excel row label; disambiguate duplicates with `__<cell>` suffix if needed.
+- Struct fields use `snake_case`, derived from the Excel row label.
+- Include only cells that participate in calculations (formula cells, yellow inputs, referenced constants).
 - Percentages: Excel stores most % as **fractions** (e.g., 0.75), even when the label shows `%`.
 
 ### Sheet → Struct Variable Names
@@ -36,22 +37,20 @@ TRIBE_Model/
 | 8. System Flow | `sflow` | `SystemFlow` |
 | 9. System P&L | `spl` | `SystemPL` |
 
-## Excel → MATLAB Function Mappings
-
-These are used in Phase guides when transcribing formulas:
+## Excel → MATLAB Function Mappings (Used in Transcriptions)
 
 - `IF(cond,a,b)` → `ifelse(cond,a,b)` (utility helper or explicit `if/else`)
 - `IFERROR(x,fallback)` → `iferror(x,fallback)` (utility helper, or explicit guard)
+- `ISNUMBER(x)` → `isnumber(x)` (utility helper; often becomes `isnumeric`/`~isnan` depending on representation)
 - `ROUND(x,n)` → `round(x,n)`
-- `ROUNDUP(x,0)` → `ceil(x)`
-- `ROUNDDOWN(x,0)` → `floor(x)`
-- `MAX(a,b)` / `MIN(a,b)` → `max(a,b)` / `min(a,b)`
-- `SUM(B13:B15)` → `sum([..])`
+- `ROUNDUP(x,0)` → `ceil(x)` (or keep `roundup(x,0)` helper)
+- `ROUNDDOWN(x,0)` → `floor(x)` (or keep `rounddown(x,0)` helper)
+- `MAX/MIN/SUM/SQRT` → `max/min/sum/sqrt`
 - Text concat `a & b` → `a + string(b)` (string scalars) or `sprintf(...)`
 
 ## Data Structures (Field Inventory)
 
-Field lists below are generated from the workbook row labels. Units are inferred from the label (best-effort).
+Field lists below are derived from the workbook row labels and filtered to cells that participate in calculations.
 
 ### 0. Rack Profile → `rp`
 
@@ -97,11 +96,6 @@ Field lists below are generated from the workbook row labels. Units are inferred
 | `heat_delivered_mwh_per_yr` | `0. Rack Profile!B68` | double | MWh/yr | Calculate annual heat sales volume |
 | `hp_electricity_mwh_per_yr` | `0. Rack Profile!B69` | double | MWh/yr | Model heat pump operating cost |
 | `hp_electricity_cost_gbp_per_yr` | `0. Rack Profile!B70` | double | £/yr | Model heat pump operating cost |
-| `method` | `0. Rack Profile!B75` | string |  | Model parameter |
-| `direct_to_chip_dtc` | `0. Rack Profile!B76` | string | DTC | Model parameter |
-| `single_phase_immersion` | `0. Rack Profile!B77` | string |  | Model parameter |
-| `two_phase_immersion` | `0. Rack Profile!B78` | string |  | Model parameter |
-| `rear_door_heat_exchanger` | `0. Rack Profile!B79` | string |  | Model parameter |
 
 ### 1. Module Criteria → `mc`
 
@@ -130,7 +124,6 @@ Field lists below are generated from the workbook row labels. Units are inferred
 
 | Field | Excel cell | Type | Units | Intent |
 |---|---|---|---|---|
-| `capital_expenditure_for_a_single_digital_boiler_module` | `2. Module Capex!B2` | string |  | Model parameter |
 | `chipset` | `2. Module Capex!B5` | string |  | Model parameter |
 | `cooling_method` | `2. Module Capex!B6` | string |  | Model parameter |
 | `racks_per_module` | `2. Module Capex!B7` | double |  | Model parameter |
@@ -149,7 +142,6 @@ Field lists below are generated from the workbook row labels. Units are inferred
 | `manifolds_quick_connects` | `2. Module Capex!B22` | double |  | Cost fluid distribution to racks |
 | `primary_loop_piping` | `2. Module Capex!B23` | double |  | Cost primary cooling loop |
 | `subtotal_dtc_cooling` | `2. Module Capex!B24` | double |  | Subtotal DTC cooling costs |
-| `immersion_cooling` | `2. Module Capex!B26` | string |  | Section for immersion-specific equipment |
 | `immersion_tanks` | `2. Module Capex!B27` | double |  | Cost immersion cooling vessels |
 | `dielectric_fluid_initial_fill` | `2. Module Capex!B28` | double | initial fill | Cost cooling fluid initial fill |
 | `fluid_management_system` | `2. Module Capex!B29` | double |  | Cost cooling fluid initial fill |
@@ -167,7 +159,6 @@ Field lists below are generated from the workbook row labels. Units are inferred
 | `per_rack_monitoring` | `2. Module Capex!B47` | double |  | Cost per-rack monitoring |
 | `network_infrastructure` | `2. Module Capex!B48` | double |  | Cost network infrastructure |
 | `subtotal_monitoring` | `2. Module Capex!B49` | double |  | Subtotal monitoring costs |
-| `heat_pump_if_enabled` | `2. Module Capex!B51` | string | IF ENABLED | Model parameter |
 | `heat_pump_capex_rate_gbp_per_kwth` | `2. Module Capex!B52` | double | £/kWth | Financial input or calculation |
 | `heat_pump_unit` | `2. Module Capex!B53` | double |  | Cost heat pump equipment |
 | `heat_pump_installation` | `2. Module Capex!B54` | double |  | Cost heat pump installation |
@@ -307,7 +298,6 @@ Field lists below are generated from the workbook row labels. Units are inferred
 | `total_module_footprint_m` | `5. Buyer Profile!B101` | double | m² | Calculate space requirements |
 | `plant_room_allowance_m` | `5. Buyer Profile!B102` | double | m² | Allocate support equipment space |
 | `total_site_area_m` | `5. Buyer Profile!B103` | double | m² | Calculate space requirements |
-| `item` | `5. Buyer Profile!B106` | string |  | Model parameter |
 | `modular_dc_units_250kw_it` | `5. Buyer Profile!B107` | double | 250kW IT | Generate equipment list for procurement |
 | `heat_pump_units__b108` | `5. Buyer Profile!B108` | double |  | Count HP equipment needed |
 | `42u_server_racks` | `5. Buyer Profile!B109` | double |  | Generate equipment list for procurement |
@@ -315,7 +305,7 @@ Field lists below are generated from the workbook row labels. Units are inferred
 | `sink_circulation_pumps` | `5. Buyer Profile!B111` | double |  | Size circulation equipment |
 | `plate_heat_exchangers` | `5. Buyer Profile!B112` | double |  | Model parameter |
 | `buffer_tank` | `5. Buyer Profile!B113` | double |  | Flag if thermal buffer needed |
-| `bms_per_controls_package` | `5. Buyer Profile!B114` | logical (0/1) |  | Model parameter |
+| `bms_per_controls_package` | `5. Buyer Profile!B114` | double |  | Model parameter |
 | `flow_augmentation_pumps` | `5. Buyer Profile!B115` | double |  | Size circulation equipment |
 | `mixing_valves` | `5. Buyer Profile!B116` | double |  | Flag if temperature control needed |
 
@@ -401,7 +391,6 @@ Field lists below are generated from the workbook row labels. Units are inferred
 | `system_thermal_capacity_kwth` | `8. System Flow!B21` | double | kWth | Pull system heat capacity |
 | `system_flow_capacity_m3_per_hr` | `8. System Flow!B22` | double | m³/hr | Pull system flow capacity |
 | `annual_heat_supply_mwh` | `8. System Flow!B23` | double | MWh | Calculate annual heat available |
-| `supply_vs_demand_match` | `8. System Flow!B25` | string |  | Compare system capability to buyer need |
 | `temperature_c` | `8. System Flow!B26` | double | °C | Temperature parameter for thermal design |
 | `temperature_c__supplied` | `8. System Flow!C26` | double | °C | Temperature parameter for thermal design |
 | `temperature_c__match` | `8. System Flow!D26` | string | °C | Temperature parameter for thermal design |
