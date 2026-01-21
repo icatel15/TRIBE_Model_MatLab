@@ -476,8 +476,7 @@ classdef ProcessLibrary
                     "https://www.clarke-energy.com/applications/breweries/",
                     "https://www.clarke-energy.com/applications/breweries/",
                     "https://www.clarke-energy.com/applications/breweries/"
-                }
-            );
+                });
         end
     end
 end
