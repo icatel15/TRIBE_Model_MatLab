@@ -299,7 +299,7 @@ Field lists below are derived from the workbook row labels and filtered to cells
 | `total_site_area_m` | `5. Buyer Profile!B103` | double | m² | Calculate space requirements |
 | `modular_dc_units_250kw_it` | `5. Buyer Profile!B107` | double | 250kW IT | Generate equipment list for procurement |
 | `heat_pump_units__b108` | `5. Buyer Profile!B108` | double |  | Count HP equipment needed |
-| `42u_server_racks` | `5. Buyer Profile!B109` | double |  | Generate equipment list for procurement |
+| `server_racks_42u` | `5. Buyer Profile!B109` | double |  | Generate equipment list for procurement |
 | `source_circulation_pumps` | `5. Buyer Profile!B110` | double |  | Reference data provenance |
 | `sink_circulation_pumps` | `5. Buyer Profile!B111` | double |  | Size circulation equipment |
 | `plate_heat_exchangers` | `5. Buyer Profile!B112` | double |  | Model parameter |
@@ -451,4 +451,3 @@ Field lists below are derived from the workbook row labels and filtered to cells
 | `cost_of_heat_rejection_gbp_per_yr` | `9. System P&L!B55` | double | £/yr | Quantify rejection cost impact |
 | `total_heat_inefficiency_cost_gbp_per_yr` | `9. System P&L!B56` | double | £/yr | Sum heat-related losses |
 | `heat_inefficiency_as_pct_of_potential_profit` | `9. System P&L!B57` | double | fraction (0–1) | Show heat loss as share of potential |
-

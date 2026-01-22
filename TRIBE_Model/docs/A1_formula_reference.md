@@ -166,7 +166,7 @@ Notes:
 | 124 | `5. Buyer Profile!B103` | Total site area (m²) | arithmetic | `=B101+B102` | `bp.total_site_area_m = bp.total_module_footprint_m+bp.plant_room_allowance_m;` |  |
 | 125 | `5. Buyer Profile!B107` | Modular DC units (250kW IT) | arithmetic | `=B36` | `bp.modular_dc_units_250kw_it = bp.modules_required;` |  |
 | 126 | `5. Buyer Profile!B108` | Heat pump units | arithmetic | `=B73` | `bp.heat_pump_units__b108 = bp.heat_pump_units;` |  |
-| 127 | `5. Buyer Profile!B109` | 42U server racks | arithmetic | `=B68` | `bp.42u_server_racks = bp.total_rack_units_42u_racks_10kw;` |  |
+| 127 | `5. Buyer Profile!B109` | 42U server racks | arithmetic | `=B68` | `bp.server_racks_42u = bp.total_rack_units_42u_racks_10kw;` |  |
 | 128 | `5. Buyer Profile!B110` | Source circulation pumps | arithmetic | `=B78` | `bp.source_circulation_pumps = bp.source_loop_pumps;` |  |
 | 129 | `5. Buyer Profile!B111` | Sink circulation pumps | arithmetic | `=B79` | `bp.sink_circulation_pumps = bp.sink_loop_pumps;` |  |
 | 130 | `5. Buyer Profile!B112` | Plate heat exchangers | arithmetic | `=B36` | `bp.plate_heat_exchangers = bp.modules_required;` |  |
@@ -371,4 +371,3 @@ Notes:
 | 329 | `11. Reference Data!D48` | 11. Reference Data D48 | rounding | `=ROUND(1/C48,3)` | `round(1/C48,3);` |  |
 | 330 | `11. Reference Data!D49` | 11. Reference Data D49 | rounding | `=ROUND(1/C49,3)` | `round(1/C49,3);` |  |
 | 331 | `11. Reference Data!D50` | 11. Reference Data D50 | rounding | `=ROUND(1/C50,3)` | `round(1/C50,3);` |  |
-

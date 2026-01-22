@@ -97,7 +97,7 @@
 | `5. Buyer Profile!B103` | Total site area (m²) | `=B101+B102` | `bp.total_site_area_m = bp.total_module_footprint_m+bp.plant_room_allowance_m;` |  |
 | `5. Buyer Profile!B107` | Modular DC units (250kW IT) | `=B36` | `bp.modular_dc_units_250kw_it = bp.modules_required;` |  |
 | `5. Buyer Profile!B108` | Heat pump units | `=B73` | `bp.heat_pump_units__b108 = bp.heat_pump_units;` |  |
-| `5. Buyer Profile!B109` | 42U server racks | `=B68` | `bp.42u_server_racks = bp.total_rack_units_42u_racks_10kw;` |  |
+| `5. Buyer Profile!B109` | 42U server racks | `=B68` | `bp.server_racks_42u = bp.total_rack_units_42u_racks_10kw;` |  |
 | `5. Buyer Profile!B110` | Source circulation pumps | `=B78` | `bp.source_circulation_pumps = bp.source_loop_pumps;` |  |
 | `5. Buyer Profile!B111` | Sink circulation pumps | `=B79` | `bp.sink_circulation_pumps = bp.sink_loop_pumps;` |  |
 | `5. Buyer Profile!B112` | Plate heat exchangers | `=B36` | `bp.plate_heat_exchangers = bp.modules_required;` |  |
@@ -109,4 +109,3 @@
 
 - Default process `Pasteurisation - Medium` matches Excel for all Buyer Profile outputs.
 - Test at least 3 additional processes spanning low ΔT (flow-heavy) and high ΔT (thermal-heavy).
-
