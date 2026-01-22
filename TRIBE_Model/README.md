@@ -7,6 +7,33 @@ addpath('TRIBE_Model');
 results = main();
 ```
 
+## App Front End (TribeFrontEnd)
+
+Launch the App Designer UI from the repo root:
+
+```matlab
+addpath('TRIBE_Model');
+rehash toolboxcache;
+app = TribeFrontEnd;
+```
+
+If you are not in the repo root, use an absolute path to the `TRIBE_Model`
+folder:
+
+```matlab
+addpath('/Users/icatel/Desktop/Coding/TRIBE_Modelling_MatLab/TRIBE_Model');
+rehash toolboxcache;
+app = TribeFrontEnd;
+```
+
+If MATLAB cannot find the UI classes, verify the package path:
+
+```matlab
+which tribe.ui.ConfigEditor
+```
+
+You should see a path under `TRIBE_Model/+tribe/+ui/ConfigEditor.m`.
+
 ## Configuration
 
 ```matlab

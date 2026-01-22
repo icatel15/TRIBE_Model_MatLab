@@ -16,6 +16,7 @@ classdef TribeFrontEnd < handle
         ConfigEditor        tribe.ui.ConfigEditor
         ModelRunner         tribe.ui.ModelRunner
         SensitivityRunner   tribe.ui.SensitivityRunner
+        OptimizationRunner  tribe.ui.OptimizationRunner
 
         % Layout containers
         MainGrid            matlab.ui.container.GridLayout
@@ -84,6 +85,21 @@ classdef TribeFrontEnd < handle
         SensitivityParam2Label      matlab.ui.control.Label
         SensitivityParam2Panel      matlab.ui.container.Panel
 
+        % Optimization tab components
+        OptimizationTab             matlab.ui.container.Tab
+        OptObjectiveDropdown        matlab.ui.control.DropDown
+        OptYearsSpinner             matlab.ui.control.Spinner
+        OptTopNSpinner              matlab.ui.control.Spinner
+        RunOptButton                matlab.ui.control.Button
+        CancelOptButton             matlab.ui.control.Button
+        OptStageLabel               matlab.ui.control.Label
+        OptProgressLabel            matlab.ui.control.Label
+        OptStatusLabel              matlab.ui.control.Label
+        Stage1Table                 matlab.ui.control.Table
+        Stage2Table                 matlab.ui.control.Table
+        LoadOptConfigButton         matlab.ui.control.Button
+        ExportOptResultsButton      matlab.ui.control.Button
+
         % Scenarios tab components
         ScenarioListBox     matlab.ui.control.ListBox
         AddScenarioButton   matlab.ui.control.Button
@@ -124,9 +140,13 @@ classdef TribeFrontEnd < handle
 
             % Create main figure
             app.UIFigure = uifigure('Visible', 'off');
-            app.UIFigure.Position = [100 100 1400 900];
+            screenSize = get(0, 'ScreenSize');
+            figWidth = min(1400, screenSize(3) - 100);
+            figHeight = min(900, screenSize(4) - 120);
+            app.UIFigure.Position = [screenSize(1) + 50, screenSize(2) + 50, figWidth, figHeight];
             app.UIFigure.Name = 'TRIBE Model Front End';
             app.UIFigure.Resize = 'on';
+            app.UIFigure.AutoResizeChildren = 'off';
 
             % Main grid layout (2 columns)
             app.MainGrid = uigridlayout(app.UIFigure, [1 2]);
@@ -139,7 +159,29 @@ classdef TribeFrontEnd < handle
             createRightPanel(app);
 
             % Make visible
+            app.UIFigure.SizeChangedFcn = @(src, event) resizeLayout(app);
+            resizeLayout(app);
+
             app.UIFigure.Visible = 'on';
+        end
+
+        function resizeLayout(app)
+            %RESIZELAYOUT Adjust layout for current figure size.
+            figWidth = app.UIFigure.Position(3);
+            leftWidth = max(280, min(420, figWidth * 0.28));
+            app.MainGrid.ColumnWidth = {leftWidth, '1x'};
+
+            bgWidth = app.ModeButtonGroup.Position(3);
+            bgHeight = app.ModeButtonGroup.Position(4);
+            padding = 10;
+            gap = 10;
+            buttonHeight = 22;
+            usableWidth = max(0, bgWidth - (2 * padding + gap));
+            buttonWidth = max(1, floor(usableWidth / 2));
+            yPos = max(4, floor((bgHeight - buttonHeight) / 2));
+
+            app.GuidedButton.Position = [padding, yPos, buttonWidth, buttonHeight];
+            app.AdvancedButton.Position = [padding + buttonWidth + gap, yPos, buttonWidth, buttonHeight];
         end
 
         function createLeftPanel(app)
@@ -151,7 +193,7 @@ classdef TribeFrontEnd < handle
             app.LeftPanel.Layout.Column = 1;
 
             leftGrid = uigridlayout(app.LeftPanel, [4 1]);
-            leftGrid.RowHeight = {40, '1x', '1x', 120};
+            leftGrid.RowHeight = {'fit', '1x', '1x', 'fit'};
             leftGrid.Padding = [10 10 10 10];
             leftGrid.RowSpacing = 10;
 
@@ -192,7 +234,7 @@ classdef TribeFrontEnd < handle
             app.GuidedPanel.Layout.Column = 1;
 
             grid = uigridlayout(app.GuidedPanel, [9 2]);
-            grid.RowHeight = {25, 25, 25, 25, 25, 25, 25, 25, 25};
+            grid.RowHeight = repmat({'fit'}, 1, 9);
             grid.ColumnWidth = {'1x', '1x'};
             grid.Padding = [10 10 10 10];
             grid.RowSpacing = 8;
@@ -287,7 +329,7 @@ classdef TribeFrontEnd < handle
             app.RunPanel.Layout.Column = 1;
 
             grid = uigridlayout(app.RunPanel, [3 3]);
-            grid.RowHeight = {35, 25, 30};
+            grid.RowHeight = {'fit', 'fit', 'fit'};
             grid.ColumnWidth = {'1x', '1x', '1x'};
             grid.Padding = [10 10 10 10];
             grid.RowSpacing = 8;
@@ -345,6 +387,7 @@ classdef TribeFrontEnd < handle
             createDashboardTab(app);
             createDetailsTab(app);
             createSensitivityTab(app);
+            createOptimizationTab(app);
             createScenariosTab(app);
         end
 
@@ -355,7 +398,7 @@ classdef TribeFrontEnd < handle
             app.DashboardTab.Title = 'Dashboard';
 
             dashGrid = uigridlayout(app.DashboardTab, [2 1]);
-            dashGrid.RowHeight = {120, '1x'};
+            dashGrid.RowHeight = {'fit', '1x'};
             dashGrid.Padding = [10 10 10 10];
             dashGrid.RowSpacing = 15;
 
@@ -441,14 +484,14 @@ classdef TribeFrontEnd < handle
             app.DetailsTab.Title = 'Details';
 
             detailsGrid = uigridlayout(app.DetailsTab, [2 1]);
-            detailsGrid.RowHeight = {30, '1x'};
+            detailsGrid.RowHeight = {'fit', '1x'};
             detailsGrid.Padding = [10 10 10 10];
             detailsGrid.RowSpacing = 10;
 
             % Section selector
             selectorPanel = uigridlayout(detailsGrid, [1 2]);
             selectorPanel.Layout.Row = 1;
-            selectorPanel.ColumnWidth = {100, 200};
+            selectorPanel.ColumnWidth = {'fit', '1x'};
             selectorPanel.Padding = [0 0 0 0];
 
             lbl = uilabel(selectorPanel);
@@ -478,7 +521,7 @@ classdef TribeFrontEnd < handle
             app.SensitivityTab.Title = 'Sensitivity';
 
             sensGrid = uigridlayout(app.SensitivityTab, [2 1]);
-            sensGrid.RowHeight = {150, '1x'};
+            sensGrid.RowHeight = {'fit', '1x'};
             sensGrid.Padding = [10 10 10 10];
             sensGrid.RowSpacing = 10;
 
@@ -488,8 +531,8 @@ classdef TribeFrontEnd < handle
             controlPanel.Layout.Row = 1;
 
             controlGrid = uigridlayout(controlPanel, [4 4]);
-            controlGrid.RowHeight = {25, 25, 25, 35};
-            controlGrid.ColumnWidth = {120, '1x', 120, '1x'};
+            controlGrid.RowHeight = repmat({'fit'}, 1, 4);
+            controlGrid.ColumnWidth = {'fit', '1x', 'fit', '1x'};
             controlGrid.Padding = [10 10 10 10];
             controlGrid.RowSpacing = 8;
 
@@ -578,6 +621,147 @@ classdef TribeFrontEnd < handle
             app.SensitivityParam2Dropdown.Visible = 'off';
         end
 
+        function createOptimizationTab(app)
+            %CREATEOPTIMIZATIONTAB Create the optimization tab.
+
+            app.OptimizationTab = uitab(app.OutputTabGroup);
+            app.OptimizationTab.Title = 'Optimization';
+
+            optGrid = uigridlayout(app.OptimizationTab, [3 1]);
+            optGrid.RowHeight = {'fit', 'fit', '1x'};
+            optGrid.Padding = [10 10 10 10];
+            optGrid.RowSpacing = 15;
+
+            % Settings panel
+            settingsPanel = uipanel(optGrid);
+            settingsPanel.Title = 'Optimization Settings';
+            settingsPanel.Layout.Row = 1;
+
+            settingsGrid = uigridlayout(settingsPanel, [2 6]);
+            settingsGrid.ColumnWidth = {'fit', '1x', 'fit', '1x', 'fit', '1x'};
+            settingsGrid.RowHeight = {'fit', 'fit'};
+            settingsGrid.Padding = [10 10 10 10];
+            settingsGrid.RowSpacing = 8;
+
+            % Objective dropdown
+            lbl = uilabel(settingsGrid); lbl.Text = 'Objective:';
+            lbl.Layout.Row = 1; lbl.Layout.Column = 1;
+            app.OptObjectiveDropdown = uidropdown(settingsGrid);
+            app.OptObjectiveDropdown.Items = {'Maximize Annualized Profit', 'Maximize ROI', 'Minimize Payback'};
+            app.OptObjectiveDropdown.ItemsData = {'profit', 'roi', 'payback'};
+            app.OptObjectiveDropdown.Value = 'profit';
+            app.OptObjectiveDropdown.Layout.Row = 1;
+            app.OptObjectiveDropdown.Layout.Column = 2;
+
+            % Annualization years
+            lbl = uilabel(settingsGrid); lbl.Text = 'Annualization Years:';
+            lbl.Layout.Row = 1; lbl.Layout.Column = 3;
+            app.OptYearsSpinner = uispinner(settingsGrid);
+            app.OptYearsSpinner.Value = 10;
+            app.OptYearsSpinner.Limits = [1 30];
+            app.OptYearsSpinner.Layout.Row = 1;
+            app.OptYearsSpinner.Layout.Column = 4;
+
+            % Top N configs for Stage 2
+            lbl = uilabel(settingsGrid); lbl.Text = 'Top N for Stage 2:';
+            lbl.Layout.Row = 1; lbl.Layout.Column = 5;
+            app.OptTopNSpinner = uispinner(settingsGrid);
+            app.OptTopNSpinner.Value = 20;
+            app.OptTopNSpinner.Limits = [5 50];
+            app.OptTopNSpinner.Layout.Row = 1;
+            app.OptTopNSpinner.Layout.Column = 6;
+
+            % Run/Cancel buttons
+            app.RunOptButton = uibutton(settingsGrid, 'push');
+            app.RunOptButton.Text = 'RUN OPTIMIZATION';
+            app.RunOptButton.FontWeight = 'bold';
+            app.RunOptButton.BackgroundColor = [0.6 0.2 0.6];
+            app.RunOptButton.FontColor = [1 1 1];
+            app.RunOptButton.Layout.Row = 2;
+            app.RunOptButton.Layout.Column = [1 3];
+
+            app.CancelOptButton = uibutton(settingsGrid, 'push');
+            app.CancelOptButton.Text = 'Cancel';
+            app.CancelOptButton.Enable = 'off';
+            app.CancelOptButton.Layout.Row = 2;
+            app.CancelOptButton.Layout.Column = [4 6];
+
+            % Progress panel
+            progressPanel = uipanel(optGrid);
+            progressPanel.Title = 'Progress';
+            progressPanel.Layout.Row = 2;
+
+            progressGrid = uigridlayout(progressPanel, [1 6]);
+            progressGrid.ColumnWidth = {'fit', '1x', 'fit', '1x', 'fit', '1x'};
+            progressGrid.RowHeight = {'fit'};
+            progressGrid.Padding = [10 10 10 10];
+
+            lbl = uilabel(progressGrid); lbl.Text = 'Stage:';
+            lbl.Layout.Column = 1;
+            app.OptStageLabel = uilabel(progressGrid);
+            app.OptStageLabel.Text = 'Not started';
+            app.OptStageLabel.FontWeight = 'bold';
+            app.OptStageLabel.Layout.Column = 2;
+
+            lbl = uilabel(progressGrid); lbl.Text = 'Progress:';
+            lbl.Layout.Column = 3;
+            app.OptProgressLabel = uilabel(progressGrid);
+            app.OptProgressLabel.Text = '-';
+            app.OptProgressLabel.Layout.Column = 4;
+
+            lbl = uilabel(progressGrid); lbl.Text = 'Status:';
+            lbl.Layout.Column = 5;
+            app.OptStatusLabel = uilabel(progressGrid);
+            app.OptStatusLabel.Text = 'Ready';
+            app.OptStatusLabel.Layout.Column = 6;
+
+            % Results panel
+            resultsPanel = uipanel(optGrid);
+            resultsPanel.Title = 'Results';
+            resultsPanel.Layout.Row = 3;
+
+            resultsGrid = uigridlayout(resultsPanel, [2 2]);
+            resultsGrid.RowHeight = {'1x', 'fit'};
+            resultsGrid.ColumnWidth = {'1x', '1x'};
+            resultsGrid.Padding = [10 10 10 10];
+            resultsGrid.RowSpacing = 10;
+
+            % Stage 1 results table
+            stage1Panel = uipanel(resultsGrid);
+            stage1Panel.Title = 'Stage 1: Top Discrete Configs';
+            stage1Panel.Layout.Row = 1;
+            stage1Panel.Layout.Column = 1;
+
+            stage1Grid = uigridlayout(stage1Panel, [1 1]);
+            stage1Grid.Padding = [5 5 5 5];
+            app.Stage1Table = uitable(stage1Grid);
+            app.Stage1Table.ColumnName = {'Rank', 'Chipset', 'Cooling', 'Process', 'Objective'};
+            app.Stage1Table.ColumnWidth = {40, 'auto', 'auto', 'auto', 70};
+
+            % Stage 2 results table
+            stage2Panel = uipanel(resultsGrid);
+            stage2Panel.Title = 'Stage 2: Optimized Configs';
+            stage2Panel.Layout.Row = 1;
+            stage2Panel.Layout.Column = 2;
+
+            stage2Grid = uigridlayout(stage2Panel, [1 1]);
+            stage2Grid.Padding = [5 5 5 5];
+            app.Stage2Table = uitable(stage2Grid);
+            app.Stage2Table.ColumnName = {'Rank', 'Chipset', 'Cooling', 'Process', 'Objective'};
+            app.Stage2Table.ColumnWidth = {40, 'auto', 'auto', 'auto', 70};
+
+            % Action buttons
+            app.LoadOptConfigButton = uibutton(resultsGrid, 'push');
+            app.LoadOptConfigButton.Text = 'Load Best Config';
+            app.LoadOptConfigButton.Layout.Row = 2;
+            app.LoadOptConfigButton.Layout.Column = 1;
+
+            app.ExportOptResultsButton = uibutton(resultsGrid, 'push');
+            app.ExportOptResultsButton.Text = 'Export Results';
+            app.ExportOptResultsButton.Layout.Row = 2;
+            app.ExportOptResultsButton.Layout.Column = 2;
+        end
+
         function createScenariosTab(app)
             %CREATESCENARIOSTAB Create the scenarios management tab.
 
@@ -585,7 +769,7 @@ classdef TribeFrontEnd < handle
             app.ScenariosTab.Title = 'Scenarios';
 
             scenGrid = uigridlayout(app.ScenariosTab, [1 2]);
-            scenGrid.ColumnWidth = {250, '1x'};
+            scenGrid.ColumnWidth = {'fit', '1x'};
             scenGrid.Padding = [10 10 10 10];
             scenGrid.ColumnSpacing = 15;
 
@@ -596,7 +780,7 @@ classdef TribeFrontEnd < handle
             leftPanel.Layout.Column = 1;
 
             leftGrid = uigridlayout(leftPanel, [4 2]);
-            leftGrid.RowHeight = {'1x', 25, 30, 30};
+            leftGrid.RowHeight = {'1x', 'fit', 'fit', 'fit'};
             leftGrid.ColumnWidth = {'1x', '1x'};
             leftGrid.Padding = [10 10 10 10];
             leftGrid.RowSpacing = 8;
@@ -661,6 +845,12 @@ classdef TribeFrontEnd < handle
             app.SensitivityTypeDropdown.ValueChangedFcn = @(src, event) sensitivityTypeChanged(app);
             app.RunSensitivityButton.ButtonPushedFcn = @(src, event) runSensitivityButtonPushed(app);
 
+            % Optimization tab
+            app.RunOptButton.ButtonPushedFcn = @(src, event) runOptimizationButtonPushed(app);
+            app.CancelOptButton.ButtonPushedFcn = @(src, event) cancelOptimizationButtonPushed(app);
+            app.LoadOptConfigButton.ButtonPushedFcn = @(src, event) loadOptConfigButtonPushed(app);
+            app.ExportOptResultsButton.ButtonPushedFcn = @(src, event) exportOptResultsButtonPushed(app);
+
             % Scenarios tab
             app.AddScenarioButton.ButtonPushedFcn = @(src, event) addScenarioButtonPushed(app);
             app.LoadScenarioButton.ButtonPushedFcn = @(src, event) loadScenarioButtonPushed(app);
@@ -675,6 +865,7 @@ classdef TribeFrontEnd < handle
             app.ConfigEditor = tribe.ui.ConfigEditor();
             app.ModelRunner = tribe.ui.ModelRunner();
             app.SensitivityRunner = tribe.ui.SensitivityRunner();
+            app.OptimizationRunner = tribe.ui.OptimizationRunner();
 
             % Populate dropdowns
             populateDropdowns(app);
@@ -1235,6 +1426,151 @@ classdef TribeFrontEnd < handle
             tbl = uitable(grid);
             tbl.Data = T;
             tbl.ColumnWidth = {'auto'};
+        end
+
+        function runOptimizationButtonPushed(app)
+            %RUNOPTIMIZATIONBUTTONPUSHED Handle run optimization button click.
+
+            app.RunOptButton.Enable = 'off';
+            app.CancelOptButton.Enable = 'on';
+            app.OptStageLabel.Text = 'Starting...';
+            app.OptStatusLabel.Text = 'Initializing';
+            drawnow;
+
+            % Set up optimization options
+            opts = struct();
+            opts.top_n = app.OptTopNSpinner.Value;
+            opts.objective = app.OptObjectiveDropdown.Value;
+            opts.annualization_years = app.OptYearsSpinner.Value;
+
+            app.OptimizationRunner.setBaseConfig(app.ConfigEditor.getConfig());
+            app.OptimizationRunner.setOptions(opts);
+
+            % Create a timer to update progress
+            progressTimer = timer('ExecutionMode', 'fixedSpacing', ...
+                'Period', 0.5, ...
+                'TimerFcn', @(~,~) updateOptimizationProgress(app));
+
+            try
+                start(progressTimer);
+                results = app.OptimizationRunner.runOptimization();
+                stop(progressTimer);
+                delete(progressTimer);
+
+                if results.completed
+                    displayOptimizationResults(app, results);
+                    app.OptStatusLabel.Text = 'Complete';
+                    app.OptStageLabel.Text = 'Finished';
+                else
+                    app.OptStatusLabel.Text = 'Cancelled';
+                end
+            catch ME
+                stop(progressTimer);
+                delete(progressTimer);
+                app.OptStatusLabel.Text = 'Error';
+                uialert(app.UIFigure, ME.message, 'Optimization Error');
+            end
+
+            app.RunOptButton.Enable = 'on';
+            app.CancelOptButton.Enable = 'off';
+        end
+
+        function updateOptimizationProgress(app)
+            %UPDATEOPTIMIZATIONPROGRESS Update progress display from runner.
+
+            [stage, progress, message] = app.OptimizationRunner.getProgress();
+
+            if stage == 1
+                app.OptStageLabel.Text = 'Stage 1: Grid Search';
+            elseif stage == 2
+                app.OptStageLabel.Text = 'Stage 2: Optimization';
+            end
+
+            app.OptProgressLabel.Text = sprintf('%.0f%%', progress * 100);
+            app.OptStatusLabel.Text = message;
+            drawnow limitrate;
+        end
+
+        function cancelOptimizationButtonPushed(app)
+            %CANCELOPTIMIZATIONBUTTONPUSHED Handle cancel button click.
+
+            app.OptimizationRunner.cancel();
+            app.CancelOptButton.Enable = 'off';
+            app.OptStatusLabel.Text = 'Cancelling...';
+        end
+
+        function displayOptimizationResults(app, results)
+            %DISPLAYOPTIMIZATIONRESULTS Display optimization results in tables.
+
+            % Stage 1 table
+            stage1 = results.stage1_top_n;
+            n1 = min(height(stage1), 20);
+            stage1Data = cell(n1, 5);
+            for i = 1:n1
+                stage1Data{i, 1} = i;
+                stage1Data{i, 2} = char(stage1.chipset(i));
+                stage1Data{i, 3} = char(stage1.cooling_method(i));
+                stage1Data{i, 4} = char(stage1.process_id(i));
+                stage1Data{i, 5} = round(stage1.objective(i), 0);
+            end
+            app.Stage1Table.Data = stage1Data;
+
+            % Stage 2 table
+            stage2 = results.stage2_results;
+            n2 = numel(stage2);
+            stage2Data = cell(n2, 5);
+
+            % Sort by objective
+            objectives = zeros(n2, 1);
+            for i = 1:n2
+                objectives(i) = stage2{i}.objective;
+            end
+            if strcmp(app.OptObjectiveDropdown.Value, 'payback')
+                [~, sortIdx] = sort(objectives, 'ascend');
+            else
+                [~, sortIdx] = sort(objectives, 'descend');
+            end
+
+            for i = 1:n2
+                idx = sortIdx(i);
+                stage2Data{i, 1} = i;
+                stage2Data{i, 2} = char(stage2{idx}.chipset);
+                stage2Data{i, 3} = char(stage2{idx}.cooling_method);
+                stage2Data{i, 4} = char(stage2{idx}.process_id);
+                stage2Data{i, 5} = round(stage2{idx}.objective, 0);
+            end
+            app.Stage2Table.Data = stage2Data;
+        end
+
+        function loadOptConfigButtonPushed(app)
+            %LOADOPTCONFIGBUTTONPUSHED Load best configuration into editor.
+
+            try
+                bestConfig = app.OptimizationRunner.getBestConfig();
+                app.ConfigEditor.loadFromStruct(bestConfig);
+                updateUIFromConfig(app);
+
+                % Run the model with best config
+                runButtonPushed(app);
+
+                app.StatusLabel.Text = 'Status: Loaded optimal config';
+            catch ME
+                uialert(app.UIFigure, ME.message, 'Load Error');
+            end
+        end
+
+        function exportOptResultsButtonPushed(app)
+            %EXPORTOPTRESULTSBUTTONPUSHED Export optimization results.
+
+            [file, path] = uiputfile({'*.mat'; '*.csv'}, 'Export Results');
+            if file ~= 0
+                try
+                    app.OptimizationRunner.exportResults(fullfile(path, file));
+                    app.OptStatusLabel.Text = 'Exported';
+                catch ME
+                    uialert(app.UIFigure, ME.message, 'Export Error');
+                end
+            end
         end
     end
 end
