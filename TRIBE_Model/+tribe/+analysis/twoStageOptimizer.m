@@ -229,15 +229,25 @@ function stage2 = runStage2Optimization(top_configs, base_config, options)
         cfg.rack_profile.cooling_method = top_configs.cooling_method(c);
         cfg.buyer_profile.process_id = top_configs.process_id(c);
 
-        % Latin Hypercube Sampling
-        lhs_samples = lhsdesign(n_samples, n_params);
+        % Sample parameter values
+        if n_params == 1
+            lb = bounds(1).lower;
+            ub = bounds(1).upper;
+            if n_samples < 2
+                n_samples = 2;
+            end
+            param_values = linspace(lb, ub, n_samples)';
+        else
+            % Latin Hypercube Sampling
+            lhs_samples = lhsdesign(n_samples, n_params);
 
-        % Scale samples to parameter bounds
-        param_values = zeros(n_samples, n_params);
-        for p = 1:n_params
-            lb = bounds(p).lower;
-            ub = bounds(p).upper;
-            param_values(:, p) = lb + lhs_samples(:, p) * (ub - lb);
+            % Scale samples to parameter bounds
+            param_values = zeros(n_samples, n_params);
+            for p = 1:n_params
+                lb = bounds(p).lower;
+                ub = bounds(p).upper;
+                param_values(:, p) = lb + lhs_samples(:, p) * (ub - lb);
+            end
         end
 
         % Evaluate all samples
