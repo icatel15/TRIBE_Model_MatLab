@@ -739,6 +739,10 @@ classdef TribeFrontEnd < handle
 
             % Update HP temp spinner visibility
             app.HPTempSpinner.Enable = app.HeatPumpCheckbox.Value;
+
+            if strcmp(app.AdvancedPanel.Visible, 'on')
+                populateConfigTree(app);
+            end
         end
 
         function modeSelectionChanged(app, event)
@@ -1014,6 +1018,7 @@ classdef TribeFrontEnd < handle
 
                 baseValue = app.ConfigEditor.getField(param1);
                 values = linspace(baseValue * startFactor, baseValue * endFactor, steps);
+                values = applySweepConstraints(app, param1, baseValue, values);
 
                 cla(app.SensitivityAxes);
 
@@ -1030,6 +1035,7 @@ classdef TribeFrontEnd < handle
                         param2 = app.SensitivityParam2Dropdown.Value;
                         baseValue2 = app.ConfigEditor.getField(param2);
                         values2 = linspace(baseValue2 * startFactor, baseValue2 * endFactor, steps);
+                        values2 = applySweepConstraints(app, param2, baseValue2, values2);
                         result = app.SensitivityRunner.run2DSweep(param1, values, param2, values2, metric);
                         plot2DHeatmap(app, result);
                 end
@@ -1092,6 +1098,30 @@ classdef TribeFrontEnd < handle
             title(app.SensitivityAxes, sprintf('2D Sweep: %s', strrep(result.metric, '_', ' ')));
         end
 
+        function values = applySweepConstraints(app, param_name, base_value, values) %#ok<INUSL>
+            try
+                meta = tribe.ui.ConfigInspector.getFieldMeta(param_name);
+            catch
+                return;
+            end
+
+            constraint = lower(string(meta.constraints));
+            switch constraint
+                case "fraction"
+                    values = min(max(values, 0), 1);
+                case "non_negative"
+                    values(values < 0) = 0;
+                case "positive"
+                    if base_value <= 0
+                        fallback = meta.default;
+                        if isnumeric(fallback) && isscalar(fallback) && fallback > 0
+                            values = linspace(fallback * 0.5, fallback * 1.5, numel(values));
+                        end
+                    end
+                    values(values <= 0) = eps;
+            end
+        end
+
         function addScenarioButtonPushed(app)
             %ADDSCENARIOBUTTONPUSHED Handle add scenario button click.
 
@@ -1101,9 +1131,12 @@ classdef TribeFrontEnd < handle
             end
 
             name = app.ScenarioNameField.Value;
-            if isempty(name)
+            if (isstring(name) && strlength(name) == 0) || isempty(name)
                 name = sprintf('Scenario_%s', datestr(now, 'yyyymmdd_HHMMSS'));
+            else
+                name = char(name);
             end
+            name = makeUniqueScenarioName(app, name);
 
             scenario = struct();
             scenario.name = name;
@@ -1113,6 +1146,7 @@ classdef TribeFrontEnd < handle
 
             app.ScenarioLibrary(end+1) = scenario;
             updateScenarioList(app);
+            app.ScenarioListBox.Value = name;
             app.ScenarioNameField.Value = '';
         end
 
@@ -1121,6 +1155,21 @@ classdef TribeFrontEnd < handle
 
             names = {app.ScenarioLibrary.name};
             app.ScenarioListBox.Items = names;
+        end
+
+        function uniqueName = makeUniqueScenarioName(app, name)
+            names = {app.ScenarioLibrary.name};
+            uniqueName = name;
+            if isempty(names)
+                return;
+            end
+
+            baseName = name;
+            counter = 2;
+            while any(strcmp(names, uniqueName))
+                uniqueName = sprintf('%s (%d)', baseName, counter);
+                counter = counter + 1;
+            end
         end
 
         function loadScenarioButtonPushed(app)

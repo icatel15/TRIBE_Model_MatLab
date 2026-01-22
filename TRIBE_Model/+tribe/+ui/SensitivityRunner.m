@@ -63,6 +63,7 @@ classdef SensitivityRunner < handle
                 % Auto-generate values based on default range
                 base_value = tribe.analysis.getNestedField(obj.baseConfig, param_name);
                 values = linspace(base_value * 0.5, base_value * 1.5, 11);
+                values = tribe.ui.SensitivityRunner.applySweepConstraints(param_name, base_value, values);
             end
 
             result = tribe.analysis.parameterSweep(obj.baseConfig, param_name, values);
@@ -225,14 +226,42 @@ classdef SensitivityRunner < handle
                     % Create a table with x, y, z columns
                     result = obj.last2DSweep;
                     [X, Y] = meshgrid(result.param1_values, result.param2_values);
+                    varNames = matlab.lang.makeValidName({result.param1_name, result.param2_name, result.metric});
+                    varNames = matlab.lang.makeUniqueStrings(varNames);
                     T = table(X(:), Y(:), result.Z(:), ...
-                        'VariableNames', {result.param1_name, result.param2_name, result.metric});
+                        'VariableNames', varNames);
                     writetable(T, filepath);
                 case 'mat'
                     sweep2DResults = obj.last2DSweep;
                     save(filepath, 'sweep2DResults');
                 otherwise
                     error('SensitivityRunner:InvalidFormat', 'Unsupported format: %s', format);
+            end
+        end
+    end
+
+    methods (Static, Access = private)
+        function values = applySweepConstraints(param_name, base_value, values)
+            try
+                meta = tribe.ui.ConfigInspector.getFieldMeta(param_name);
+            catch
+                return;
+            end
+
+            constraint = lower(string(meta.constraints));
+            switch constraint
+                case "fraction"
+                    values = min(max(values, 0), 1);
+                case "non_negative"
+                    values(values < 0) = 0;
+                case "positive"
+                    if base_value <= 0
+                        fallback = meta.default;
+                        if isnumeric(fallback) && isscalar(fallback) && fallback > 0
+                            values = linspace(fallback * 0.5, fallback * 1.5, numel(values));
+                        end
+                    end
+                    values(values <= 0) = eps;
             end
         end
     end

@@ -25,6 +25,42 @@ classdef OutputCatalog
             %FORMATVALUE Format a value with appropriate units and formatting.
             meta = tribe.ui.OutputCatalog.getFieldMeta(section, field);
 
+            if isempty(value)
+                str = '-';
+                return;
+            end
+
+            if isstring(value)
+                if numel(value) == 1
+                    value = char(value);
+                else
+                    value = char(strjoin(value, ", "));
+                end
+            end
+
+            if ischar(value)
+                if isempty(meta)
+                    str = value;
+                    return;
+                end
+
+                try
+                    str = sprintf(meta.format_spec, value);
+                catch
+                    str = value;
+                end
+
+                if ~isempty(meta.units)
+                    str = [str ' ' meta.units];
+                end
+                return;
+            end
+
+            if ~isnumeric(value) || ~isscalar(value)
+                str = '-';
+                return;
+            end
+
             if isnan(value) || isinf(value)
                 str = '-';
                 return;
