@@ -161,15 +161,14 @@ classdef TribeFrontEnd < handle
             app.ModeButtonGroup.Layout.Row = 1;
             app.ModeButtonGroup.Layout.Column = 1;
 
-            modeGrid = uigridlayout(app.ModeButtonGroup, [1 2]);
-            modeGrid.Padding = [5 5 5 5];
-
-            app.GuidedButton = uiradiobutton(modeGrid);
+            app.GuidedButton = uiradiobutton(app.ModeButtonGroup);
             app.GuidedButton.Text = 'Guided Mode';
             app.GuidedButton.Value = true;
+            app.GuidedButton.Position = [10 8 140 22];
 
-            app.AdvancedButton = uiradiobutton(modeGrid);
+            app.AdvancedButton = uiradiobutton(app.ModeButtonGroup);
             app.AdvancedButton.Text = 'Advanced Mode';
+            app.AdvancedButton.Position = [170 8 150 22];
 
             % Guided panel
             createGuidedPanel(app, leftGrid);
