@@ -42,7 +42,7 @@ classdef OptimizationRunner < handle
 
         function setOptions(obj, opts)
             %SETOPTIONS Update optimization options.
-            % opts struct with fields: top_n, objective, annualization_years, n_samples
+            % opts struct with fields: top_n, objective, annualization_years, n_samples, fixed_market_values
 
             if isfield(opts, 'top_n')
                 obj.options.top_n = opts.top_n;
@@ -55,6 +55,9 @@ classdef OptimizationRunner < handle
             end
             if isfield(opts, 'n_samples')
                 obj.options.n_samples = opts.n_samples;
+            end
+            if isfield(opts, 'fixed_market_values')
+                obj.options.fixed_market_values = logical(opts.fixed_market_values);
             end
         end
 
@@ -71,14 +74,19 @@ classdef OptimizationRunner < handle
             opts = obj.options;
             opts.progress_callback = @(stage, prog, msg) obj.updateProgress(stage, prog, msg);
             opts.cancel_check = @() obj.isCancelled_;
+            opts.ui_yield = true;
 
             results = tribe.analysis.twoStageOptimizer(obj.baseConfig, opts);
             obj.lastResults = results;
 
             if results.completed
                 obj.statusMessage = 'Optimization complete.';
-            else
+            elseif isfield(results, 'cancelled') && results.cancelled
                 obj.statusMessage = 'Optimization cancelled.';
+            elseif isfield(results, 'error_message') && strlength(string(results.error_message)) > 0
+                obj.statusMessage = char(results.error_message);
+            else
+                obj.statusMessage = 'Optimization stopped.';
             end
         end
 
@@ -186,7 +194,8 @@ classdef OptimizationRunner < handle
             opts.top_n = 20;
             opts.objective = 'profit';
             opts.annualization_years = 10;
-            opts.n_samples = 500;
+            opts.n_samples = 50;  % Reduced: only 1 continuous param to optimize
+            opts.fixed_market_values = true;
         end
 
         function metrics = getAvailableObjectives(~)

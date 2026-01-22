@@ -50,6 +50,28 @@ cfg = tribe.Config.forCoolingMethod("Single-Phase Immersion");
 results = tribe.Model(cfg).run();
 ```
 
+## Optimization
+
+Run the two-stage optimizer from the command line:
+
+```matlab
+results = tribe.analysis.twoStageOptimizer();
+disp(results.best_config);
+```
+
+By default, market-constrained parameters (electricity rate, heat prices,
+compute rate, utilization) are fixed to standard UK market values and are
+not optimized. To keep the current configuration values instead, disable
+the fixed market values option:
+
+```matlab
+opts = struct('fixed_market_values', false);
+results = tribe.analysis.twoStageOptimizer([], opts);
+```
+
+In the UI, the Optimization tab includes a "Use fixed market values"
+checkbox (enabled by default) to control this behavior.
+
 ## Excel Validation
 
 ```matlab

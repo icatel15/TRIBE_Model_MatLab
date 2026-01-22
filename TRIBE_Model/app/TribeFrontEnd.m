@@ -90,6 +90,7 @@ classdef TribeFrontEnd < handle
         OptObjectiveDropdown        matlab.ui.control.DropDown
         OptYearsSpinner             matlab.ui.control.Spinner
         OptTopNSpinner              matlab.ui.control.Spinner
+        OptFixedMarketCheckbox      matlab.ui.control.CheckBox
         RunOptButton                matlab.ui.control.Button
         CancelOptButton             matlab.ui.control.Button
         OptStageLabel               matlab.ui.control.Label
@@ -637,9 +638,9 @@ classdef TribeFrontEnd < handle
             settingsPanel.Title = 'Optimization Settings';
             settingsPanel.Layout.Row = 1;
 
-            settingsGrid = uigridlayout(settingsPanel, [2 6]);
+            settingsGrid = uigridlayout(settingsPanel, [3 6]);
             settingsGrid.ColumnWidth = {'fit', '1x', 'fit', '1x', 'fit', '1x'};
-            settingsGrid.RowHeight = {'fit', 'fit'};
+            settingsGrid.RowHeight = {'fit', 'fit', 'fit'};
             settingsGrid.Padding = [10 10 10 10];
             settingsGrid.RowSpacing = 8;
 
@@ -671,19 +672,27 @@ classdef TribeFrontEnd < handle
             app.OptTopNSpinner.Layout.Row = 1;
             app.OptTopNSpinner.Layout.Column = 6;
 
+            % Fixed market values
+            app.OptFixedMarketCheckbox = uicheckbox(settingsGrid);
+            app.OptFixedMarketCheckbox.Text = 'Use fixed market values';
+            app.OptFixedMarketCheckbox.Value = true;
+            app.OptFixedMarketCheckbox.Tooltip = 'Override electricity, heat prices, utilization, and compute rate with market defaults.';
+            app.OptFixedMarketCheckbox.Layout.Row = 2;
+            app.OptFixedMarketCheckbox.Layout.Column = [1 6];
+
             % Run/Cancel buttons
             app.RunOptButton = uibutton(settingsGrid, 'push');
             app.RunOptButton.Text = 'RUN OPTIMIZATION';
             app.RunOptButton.FontWeight = 'bold';
             app.RunOptButton.BackgroundColor = [0.6 0.2 0.6];
             app.RunOptButton.FontColor = [1 1 1];
-            app.RunOptButton.Layout.Row = 2;
+            app.RunOptButton.Layout.Row = 3;
             app.RunOptButton.Layout.Column = [1 3];
 
             app.CancelOptButton = uibutton(settingsGrid, 'push');
             app.CancelOptButton.Text = 'Cancel';
             app.CancelOptButton.Enable = 'off';
-            app.CancelOptButton.Layout.Row = 2;
+            app.CancelOptButton.Layout.Row = 3;
             app.CancelOptButton.Layout.Column = [4 6];
 
             % Progress panel
@@ -1442,6 +1451,7 @@ classdef TribeFrontEnd < handle
             opts.top_n = app.OptTopNSpinner.Value;
             opts.objective = app.OptObjectiveDropdown.Value;
             opts.annualization_years = app.OptYearsSpinner.Value;
+            opts.fixed_market_values = app.OptFixedMarketCheckbox.Value;
 
             app.OptimizationRunner.setBaseConfig(app.ConfigEditor.getConfig());
             app.OptimizationRunner.setOptions(opts);
@@ -1460,6 +1470,11 @@ classdef TribeFrontEnd < handle
                 if results.completed
                     displayOptimizationResults(app, results);
                     app.OptStatusLabel.Text = 'Complete';
+                    app.OptStageLabel.Text = 'Finished';
+                elseif isfield(results, 'cancelled') && results.cancelled
+                    app.OptStatusLabel.Text = 'Cancelled';
+                elseif isfield(results, 'error_message') && strlength(string(results.error_message)) > 0
+                    app.OptStatusLabel.Text = char(results.error_message);
                     app.OptStageLabel.Text = 'Finished';
                 else
                     app.OptStatusLabel.Text = 'Cancelled';
@@ -1502,6 +1517,21 @@ classdef TribeFrontEnd < handle
         function displayOptimizationResults(app, results)
             %DISPLAYOPTIMIZATIONRESULTS Display optimization results in tables.
 
+            objectiveType = app.OptObjectiveDropdown.Value;
+            switch objectiveType
+                case 'roi'
+                    objectiveLabel = 'Objective (%)';
+                    formatObjective = @(v) round(v * 100, 1);
+                case 'payback'
+                    objectiveLabel = 'Objective (yrs)';
+                    formatObjective = @(v) round(v, 2);
+                otherwise
+                    objectiveLabel = 'Objective (GBP/yr)';
+                    formatObjective = @(v) round(v, 0);
+            end
+            app.Stage1Table.ColumnName{5} = objectiveLabel;
+            app.Stage2Table.ColumnName{5} = objectiveLabel;
+
             % Stage 1 table
             stage1 = results.stage1_top_n;
             n1 = min(height(stage1), 20);
@@ -1511,7 +1541,7 @@ classdef TribeFrontEnd < handle
                 stage1Data{i, 2} = char(stage1.chipset(i));
                 stage1Data{i, 3} = char(stage1.cooling_method(i));
                 stage1Data{i, 4} = char(stage1.process_id(i));
-                stage1Data{i, 5} = round(stage1.objective(i), 0);
+                stage1Data{i, 5} = formatObjective(stage1.objective(i));
             end
             app.Stage1Table.Data = stage1Data;
 
@@ -1537,7 +1567,7 @@ classdef TribeFrontEnd < handle
                 stage2Data{i, 2} = char(stage2{idx}.chipset);
                 stage2Data{i, 3} = char(stage2{idx}.cooling_method);
                 stage2Data{i, 4} = char(stage2{idx}.process_id);
-                stage2Data{i, 5} = round(stage2{idx}.objective, 0);
+                stage2Data{i, 5} = formatObjective(stage2{idx}.objective);
             end
             app.Stage2Table.Data = stage2Data;
         end

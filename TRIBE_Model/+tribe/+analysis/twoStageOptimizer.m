@@ -14,7 +14,9 @@ function results = twoStageOptimizer(base_config, options)
 %       .annualization_years - Years for capex annualization (default: 10)
 %       .progress_callback   - function handle @(stage, progress, message)
 %       .cancel_check        - function handle @() returning true to cancel
-%       .n_samples           - Latin Hypercube samples for Stage 2 (default: 500)
+%       .n_samples           - Latin Hypercube samples for Stage 2 (default: 50)
+%       .ui_yield            - true to yield to UI event loop (default: false)
+%       .fixed_market_values - true to apply market-constrained defaults (default: true)
 %
 % OUTPUTS:
 %   results - struct with:
@@ -25,6 +27,8 @@ function results = twoStageOptimizer(base_config, options)
 %       .best_results   - Full model results for best config
 %       .best_objective - Best objective value achieved
 %       .completed      - true if optimization finished without cancel
+%       .cancelled      - true if optimization was cancelled
+%       .error_message  - non-empty when no valid configurations were found
 
 if nargin < 1 || isempty(base_config)
     base_config = tribe.Config.default();
@@ -42,10 +46,19 @@ options = setDefaultOption(options, 'objective', 'profit');
 options = setDefaultOption(options, 'annualization_years', 10);
 options = setDefaultOption(options, 'progress_callback', []);
 options = setDefaultOption(options, 'cancel_check', @() false);
-options = setDefaultOption(options, 'n_samples', 500);
+options = setDefaultOption(options, 'n_samples', 50);
+options = setDefaultOption(options, 'ui_yield', false);
+options = setDefaultOption(options, 'fixed_market_values', true);
 
 results = struct();
 results.completed = false;
+results.cancelled = false;
+results.error_message = '';
+
+% Apply fixed market values to base config (not optimized - market constraints)
+if options.fixed_market_values
+    base_config = applyFixedMarketValues(base_config);
+end
 
 % Stage 1: Grid search all discrete combinations
 reportProgress(options, 1, 0, 'Stage 1: Building discrete grid...');
@@ -54,18 +67,30 @@ stage1 = runStage1GridSearch(base_config, options);
 if options.cancel_check()
     results.stage1_all = stage1.all_results;
     results.stage1_top_n = stage1.top_n;
+    results.cancelled = true;
     return;
 end
 
 results.stage1_all = stage1.all_results;
 results.stage1_top_n = stage1.top_n;
 
+if isempty(stage1.top_n) || height(stage1.top_n) == 0
+    results.stage2_results = {};
+    results.best_config = struct();
+    results.best_results = struct();
+    results.best_objective = getWorstObjective(options);
+    results.error_message = 'No valid configurations found.';
+    reportProgress(options, 2, 0, results.error_message);
+    return;
+end
+
 % Stage 2: Optimize continuous parameters for top N configs
 reportProgress(options, 2, 0, 'Stage 2: Optimizing continuous parameters...');
 stage2 = runStage2Optimization(stage1.top_n, base_config, options);
 
-if options.cancel_check()
+if options.cancel_check() || (isfield(stage2, 'cancelled') && stage2.cancelled)
     results.stage2_results = stage2.results;
+    results.cancelled = true;
     return;
 end
 
@@ -119,6 +144,7 @@ function stage1 = runStage1GridSearch(base_config, options)
     annualized_profit = zeros(n, 1);
     objective = zeros(n, 1);
     valid = true(n, 1);
+    error_message = strings(n, 1);
 
     for i = 1:n
         if options.cancel_check()
@@ -144,18 +170,27 @@ function stage1 = runStage1GridSearch(base_config, options)
             profit(i) = run.spl.gross_profit_gbp_per_yr;
             annualized_profit(i) = profit(i) - (capex(i) / options.annualization_years);
             objective(i) = calcObjective(run.spl, options);
-        catch
+        catch ME
             valid(i) = false;
             objective(i) = getWorstObjective(options);
+            error_message(i) = string(ME.message);
         end
 
         % Report progress
         reportProgress(options, 1, i/n, sprintf('Stage 1: %d/%d combinations tested', i, n));
+        yieldIfNeeded(options);
+    end
+
+    incomplete = chipset == "";
+    if any(incomplete)
+        valid(incomplete) = false;
+        objective(incomplete) = getWorstObjective(options);
+        error_message(incomplete) = "Not evaluated";
     end
 
     % Create results table
     results_table = table(chipset, cooling_method, process_id, modules, ...
-        capex, opex, revenue, profit, annualized_profit, objective, valid);
+        capex, opex, revenue, profit, annualized_profit, objective, valid, error_message);
 
     % Sort by objective (descending for profit/roi, ascending for payback)
     if strcmp(options.objective, 'payback')
@@ -180,9 +215,11 @@ function stage2 = runStage2Optimization(top_configs, base_config, options)
     n_samples = options.n_samples;
 
     stage2_results = cell(n_configs, 1);
+    cancelled = false;
 
     for c = 1:n_configs
         if options.cancel_check()
+            cancelled = true;
             break;
         end
 
@@ -206,9 +243,14 @@ function stage2 = runStage2Optimization(top_configs, base_config, options)
         % Evaluate all samples
         objectives = zeros(n_samples, 1);
         for s = 1:n_samples
+            if options.cancel_check()
+                cancelled = true;
+                break;
+            end
+
             test_cfg = cfg;
             for p = 1:n_params
-                test_cfg = tribe.analysis.setNestedField(test_cfg, bounds(p).path, param_values(s, p));
+                test_cfg = applyBoundValue(test_cfg, bounds(p), param_values(s, p));
             end
 
             try
@@ -217,6 +259,12 @@ function stage2 = runStage2Optimization(top_configs, base_config, options)
             catch
                 objectives(s) = getWorstObjective(options);
             end
+
+            yieldIfNeeded(options);
+        end
+
+        if cancelled
+            break;
         end
 
         % Find best sample
@@ -229,16 +277,18 @@ function stage2 = runStage2Optimization(top_configs, base_config, options)
         % Build optimal config
         best_cfg = cfg;
         for p = 1:n_params
-            best_cfg = tribe.analysis.setNestedField(best_cfg, bounds(p).path, param_values(best_idx, p));
+            best_cfg = applyBoundValue(best_cfg, bounds(p), param_values(best_idx, p));
         end
 
         % Run final model with best config
         try
             best_run = tribe.Model.runWithConfig(best_cfg);
             best_obj = calcObjective(best_run.spl, options);
-        catch
+            error_message = "";
+        catch ME
             best_run = struct();
             best_obj = getWorstObjective(options);
+            error_message = string(ME.message);
         end
 
         stage2_results{c} = struct(...
@@ -247,13 +297,20 @@ function stage2 = runStage2Optimization(top_configs, base_config, options)
             'objective', best_obj, ...
             'chipset', top_configs.chipset(c), ...
             'cooling_method', top_configs.cooling_method(c), ...
-            'process_id', top_configs.process_id(c));
+            'process_id', top_configs.process_id(c), ...
+            'error_message', error_message);
 
         reportProgress(options, 2, c/n_configs, ...
             sprintf('Stage 2: Optimized config %d/%d', c, n_configs));
+        yieldIfNeeded(options);
     end
 
     stage2.results = stage2_results;
+    if cancelled
+        stage2.cancelled = true;
+    else
+        stage2.cancelled = false;
+    end
 end
 
 %% Helper Functions
@@ -315,8 +372,48 @@ function reportProgress(options, stage, progress, message)
     end
 end
 
+function yieldIfNeeded(options)
+    if isfield(options, 'ui_yield') && options.ui_yield
+        drawnow limitrate;
+    end
+end
+
+function cfg = applyBoundValue(cfg, bound, value)
+    if isfield(bound, 'paths') && ~isempty(bound.paths)
+        paths = bound.paths;
+        if isstring(paths)
+            paths = cellstr(paths);
+        end
+        for k = 1:numel(paths)
+            cfg = tribe.analysis.setNestedField(cfg, paths{k}, value);
+        end
+    else
+        cfg = tribe.analysis.setNestedField(cfg, bound.path, value);
+    end
+end
+
 function opts = setDefaultOption(opts, field, default)
     if ~isfield(opts, field) || isempty(opts.(field))
         opts.(field) = default;
     end
+end
+
+function cfg = applyFixedMarketValues(cfg)
+%APPLYFIXEDMARKETVALUES Apply fixed market-constrained values to config.
+% These parameters are not optimized because they represent market conditions
+% rather than design choices.
+
+    % Electricity rate (UK industrial rate)
+    cfg.module_opex.electricity_rate_gbp_per_kwh = 0.18;
+    cfg.rack_profile.electricity_price_gbp_per_kwh = 0.18;
+
+    % Heat prices (district heating market rates)
+    cfg.module_criteria.base_heat_price_no_hp_gbp_per_mwh = 25;
+    cfg.module_criteria.premium_heat_price_with_hp_gbp_per_mwh = 40;
+
+    % Operational targets
+    cfg.module_criteria.target_utilisation_rate_pct = 0.90;
+
+    % Compute rate (competitive market rate)
+    cfg.module_criteria.compute_rate_gbp_per_kw_per_month = 150;
 end
